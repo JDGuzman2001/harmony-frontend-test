@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Button } from "../../components/ui/button"
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../context/authContext';
 
 function Landing() {
   const { currentUser } = useAuth();
@@ -14,27 +14,27 @@ function Landing() {
       />
       </div>
       <div className='w-1/2'>
-      <div className="bg-cyan-300 min-h-screen flex flex-col items-center justify-center">
+      <div className="bg-gray-200 min-h-screen flex flex-col items-center justify-center">
       {currentUser ? (
         <div className="flex flex-col items-center justify-center">
-              <h1 className="text-4xl font-bold text-white mb-8">Bienvenido a Harmony</h1>
-              <Link to="/home">
-                <Button>
-                  Inicio
+              <h1 className="text-4xl font-bold text-black mb-8">Welcome to Harmony</h1>
+              <Link to="/home" className="w-full">
+                <Button className="w-full text-white py-2">
+                  Home
                 </Button>
               </Link>
             </div>
           ) : (
             <div className="space-x-4 flex flex-col items-center justify-center space-y-4">
-              <h1 className="text-4xl font-bold text-white mb-8">Bienvenido a Harmony</h1>
-              <Link to="/login">
-                <Button>
-                  Iniciar Sesión
+              <h1 className="text-4xl font-bold text-black mb-8">Welcome to Harmony</h1>
+              <Link to="/login" className="w-full">
+                <Button className="w-full text-white py-2">
+                  Login
                 </Button>
               </Link>
-              <Link to="/signup">
-                <Button variant="secondary">
-                  Registrarse
+              <Link to="/signup" className="w-full">
+                <Button variant="secondary" className="w-full py-2">
+                  Sign Up
                 </Button>
               </Link>
             </div>
