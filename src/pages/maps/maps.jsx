@@ -2,10 +2,9 @@ import { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, LayersControl, useMap, Polygon, Tooltip, Marker } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import Header from '../../components/header';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../context/authContext';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Loader2 } from "lucide-react";
-import { useToast } from "../../hooks/use-toast";
 import {
   Select,
   SelectContent,
@@ -21,6 +20,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
+import MapControls from '../../components/mapControls';
+import { useMapData } from '../../hooks/useMapData';
+
 const ChangeMapView = ({ center }) => {
   const map = useMap();
   useEffect(() => {
@@ -29,263 +31,29 @@ const ChangeMapView = ({ center }) => {
   return null;
 };
 
-const calculateDistance = (point1, point2) => {
-  const [lat1, lon1] = point1;
-  const [lat2, lon2] = point2;
-  const R = 6371; 
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-           Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-           Math.sin(dLon/2) * Math.sin(dLon/2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-  return R * c;
-};
-
-const groupClosePoints = (points, maxDistance = 0.5) => {
-  const groups = [];
-  const visited = new Set();
-
-  points.forEach((point, index) => {
-    if (visited.has(index)) return;
-
-    const currentGroup = {
-      points: [point.coordinates],
-      totalSales: point.sales,
-      pointsData: [point]
-    };
-    visited.add(index);
-
-    points.forEach((otherPoint, otherIndex) => {
-      if (visited.has(otherIndex)) return;
-      
-      if (calculateDistance(point.coordinates, otherPoint.coordinates) <= maxDistance) {
-        currentGroup.points.push(otherPoint.coordinates);
-        currentGroup.totalSales += otherPoint.sales;
-        currentGroup.pointsData.push(otherPoint);
-        visited.add(otherIndex);
-      }
-    });
-
-    if (currentGroup.points.length >= 2) {
-      groups.push(currentGroup);
-    }
-  });
-
-  return groups;
-};
-
-const getZoneColor = (salesValue, minSales, maxSales) => {
-  const ratio = (salesValue - minSales) / (maxSales - minSales);
-  
-  if (ratio < 0.33) {
-    return '#ff4444';
-  } else if (ratio < 0.66) {
-    return '#ffff44';
-  } else {
-    return '#44ff44';
-  }
-};
-
 const Maps = () => {
-  const [loading, setLoading] = useState(true);
-  const [zones, setZones] = useState([]);
-  const [mapCenter, setMapCenter] = useState([4.6097, -74.0817]);
-  const [countries, setCountries] = useState([]);
-  const [routes, setRoutes] = useState([]);
-  const [selectedCountry, setSelectedCountry] = useState('Colombia');
-  const [selectedRoute, setSelectedRoute] = useState();
-  const [distributorTypes] = useState(['Wholesalers', 'Distributors', 'Sub-distributors']);
-  const [selectedDistributorType, setSelectedDistributorType] = useState(null);
+  const { 
+    loading,
+    zones,
+    mapCenter,
+    countries,
+    routes,
+    selectedCountry,
+    selectedRoute,
+    distributorTypes,
+    selectedDistributorType,
+    distributorLocations,
+    routeTotals,
+    setSelectedCountry,
+    handleDistributorTypeChange,
+    handleRouteChange
+  } = useMapData();
+
   const { handleLogout } = useAuth();
-  const { toast } = useToast();
-  const [distributorLocations, setDistributorLocations] = useState([]);
   const [pointsPerPage, setPointsPerPage] = useState(50);
   const [currentPage, setCurrentPage] = useState(1);
   const [visibleLocations, setVisibleLocations] = useState([]);
   const [selectedDistributor, setSelectedDistributor] = useState(null);
-  const [routeTotals, setRouteTotals] = useState({});
-
-  useEffect(() => {
-    const fetchDistributorData = async () => {
-      try {
-        setLoading(true);
-        let url = `http://127.0.0.1:8000/distributor_data?country=${selectedCountry}`;
-        
-        if (selectedDistributorType) {
-          url += `&distributor_type=${selectedDistributorType}`;
-        }
-        
-        const response = await fetch(url);
-        const dataJSON = await response.json();
-        const data = dataJSON.distributors;
-
-        const allLats = data.map(item => parseFloat(item.latitude));
-        const allLngs = data.map(item => parseFloat(item.longitude));
-        
-        const centerLat = allLats.reduce((a, b) => a + b, 0) / allLats.length;
-        const centerLng = allLngs.reduce((a, b) => a + b, 0) / allLngs.length;
-        
-        setMapCenter([centerLat, centerLng]);
-        setDistributorLocations(data);
-        setLoading(false);
-      } catch (error) {
-        console.error('Error fetching distributor data:', error);
-        toast({
-          title: 'Error',
-          description: `Failed to load distributor data for ${selectedCountry}`,
-        });
-        setLoading(false);
-      }
-    };
-    
-    if (selectedCountry && selectedDistributorType) {
-      fetchDistributorData();
-    }
-  }, [selectedCountry, selectedDistributorType, toast]);
-
-  useEffect(() => {
-    const fetchCountries = async () => {
-      try {
-        setLoading(true);
-        const response = await fetch('http://127.0.0.1:8000/countries');
-        const data = await response.json();
-        setCountries(data.countries);
-        setLoading(false);
-      } catch (error) {
-        console.error('Error fetching countries:', error);
-        toast({
-          title: 'Error',
-          description: 'Failed to load countries list',
-        });
-      }
-    };
-
-    fetchCountries();
-  }, [toast]);
-
-  useEffect(() => {
-    const fetchRoutes = async () => {
-      try {
-        setLoading(true);
-        const response = await fetch(`http://127.0.0.1:8000/routes-by-country?country=${selectedCountry}`);
-        const data = await response.json();
-        setRoutes(data.routes);
-        setLoading(false);
-      } catch (error) {
-        console.error('Error fetching routes:', error);
-        toast({
-          title: 'Error',
-          description: 'Failed to load routes list',
-        });
-      }
-    };
-
-    fetchRoutes();
-  }, [selectedCountry, toast]);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true); 
-        const zonesResponse = await fetch(`http://127.0.0.1:8000/distribution_zones?country=${selectedCountry}`);
-        const zonesDataJSON = await zonesResponse.json();
-
-        let allLats = [];
-        let allLngs = [];
-        
-        zonesDataJSON.zones.forEach(zoneData => {
-          zoneData.points.forEach(point => {
-            const coords = point.replace('(', '').replace(')', '').split(',');
-            allLats.push(parseFloat(coords[0]));
-            allLngs.push(parseFloat(coords[1]));
-          });
-        });
-
-        const centerLat = allLats.reduce((a, b) => a + b, 0) / allLats.length;
-        const centerLng = allLngs.reduce((a, b) => a + b, 0) / allLngs.length;
-        
-        setMapCenter([centerLat, centerLng]);
-
-        const routePoints = {};
-        zonesDataJSON.zones.forEach(zoneData => {
-          if (!routePoints[zoneData.route]) {
-            routePoints[zoneData.route] = {
-              points: [],
-              salesPoints: []
-            };
-          }
-          
-          zoneData.point_data.forEach(point => {
-            const coords = point.gps_coordinates.replace('(', '').replace(')', '').split(',');
-            routePoints[zoneData.route].salesPoints.push({
-              coordinates: [parseFloat(coords[0]), parseFloat(coords[1])],
-              sales: point.sales_units,
-              salesInfo: {
-                units: point.sales_units,
-                liters: point.sales_liters,
-                usd: point.sales_usd
-              }
-            });
-          });
-        });
-
-        const transformedZones = Object.entries(routePoints).map(([route, data]) => {
-          const salesGroups = groupClosePoints(data.salesPoints);
-          
-          const allSales = salesGroups.map(group => group.totalSales);
-          const minSales = Math.min(...allSales);
-          const maxSales = Math.max(...allSales);
-
-          return {
-            name: `Ruta ${route}`,
-            salesClusters: salesGroups.map(group => ({
-              points: group.points,
-              totalSales: group.totalSales,
-              color: getZoneColor(group.totalSales, minSales, maxSales),
-              details: group.pointsData
-            }))
-          };
-        });
-        
-        setZones(transformedZones);
-        
-        setLoading(false);
-        toast({
-          title: 'Fetched zones data',
-          description: 'Zones data fetched correctly',
-        })
-
-        const totals = {};
-        zonesDataJSON.zones.forEach(zoneData => {
-          if (!totals[zoneData.route]) {
-            totals[zoneData.route] = {
-              units: 0,
-              liters: 0,
-              usd: 0
-            };
-          }
-          
-          zoneData.point_data.forEach(point => {
-            totals[zoneData.route].units += point.sales_units;
-            totals[zoneData.route].liters += point.sales_liters;
-            totals[zoneData.route].usd += point.sales_usd;
-          });
-        });
-        setRouteTotals(totals);
-      } catch (error) {
-        console.error('Error fetching zones:', error);
-        toast({
-          title: 'Error',
-          description: `Failed to load zones for ${selectedCountry}`,
-        });
-      }
-    };
-    
-    if (selectedCountry) {
-      fetchData();
-    }
-  }, [selectedCountry, toast]);
 
   useEffect(() => {
     if (distributorLocations.length > 0) {
@@ -294,16 +62,6 @@ const Maps = () => {
       setVisibleLocations(distributorLocations.slice(startIndex, endIndex));
     }
   }, [distributorLocations, currentPage, pointsPerPage]);
-
-  const handleDistributorTypeChange = (value) => {
-    setSelectedDistributorType(value);
-    setSelectedRoute(null); 
-  };
-
-  const handleRouteChange = (value) => {
-    setSelectedRoute(value);
-    setSelectedDistributorType(null); 
-  };
 
   return (
     <div className='flex flex-col justify-start items-center min-h-screen bg-background'>
@@ -318,62 +76,17 @@ const Maps = () => {
           </div>
         ) : (
           <div>
-            <div className="mb-4 flex justify-center items-center gap-4">
-              <div className="mb-4 flex justify-center items-center">
-                <div className="mr-4 font-bold" >Countries:</div>
-                <Select
-                  value={selectedCountry}
-                  onValueChange={setSelectedCountry}
-                >
-                  <SelectTrigger className="w-[200px]">
-                    <SelectValue placeholder="Select country" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {countries.map((country) => (
-                      <SelectItem key={country} value={country}>
-                        {country}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="mb-4 flex justify-center items-center">
-                <div className="mr-4 font-bold">Routes:</div>
-                <Select
-                  value={selectedRoute}
-                  onValueChange={handleRouteChange}
-                >
-                  <SelectTrigger className="w-[200px]">
-                    <SelectValue placeholder="Select route" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {routes.map((route) => (
-                      <SelectItem key={route} value={route}>
-                        {route}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="mb-4 flex justify-center items-center">
-                <div className="mr-4 font-bold">Distributor Type:</div>
-                <Select
-                  value={selectedDistributorType}
-                  onValueChange={handleDistributorTypeChange}
-                >
-                  <SelectTrigger className="w-[200px]">
-                    <SelectValue placeholder="Select distributor type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {distributorTypes.map((type) => (
-                      <SelectItem key={type} value={type}>
-                        {type}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+            <MapControls
+              countries={countries}
+              routes={routes}
+              distributorTypes={distributorTypes}
+              selectedCountry={selectedCountry}
+              selectedRoute={selectedRoute}
+              selectedDistributorType={selectedDistributorType}
+              onCountryChange={setSelectedCountry}
+              onRouteChange={handleRouteChange}
+              onDistributorTypeChange={handleDistributorTypeChange}
+            />
             {!loading && distributorLocations.length > 0 && (
               <div className="w-full max-w-[1400px] mb-4 p-4 flex flex-col gap-2">
                 <div className="flex justify-between items-center">

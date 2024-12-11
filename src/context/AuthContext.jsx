@@ -7,11 +7,32 @@ const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
+  const [userInfo, setUserInfo] = useState(null);
   const navigate = useNavigate();
+
+  const fetchUserInfo = async (uid) => {
+    try {
+      const response = await fetch(`http://127.0.0.1:8000/get-user-info?user_id=${uid}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch user info');
+      }
+      const data = await response.json();
+      setUserInfo(data.user_info);
+      return data.user_info;
+    } catch (error) {
+      console.error('Error fetching user info:', error);
+      return null;
+    }
+  };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
+      if (user?.uid) {
+        fetchUserInfo(user.uid);
+      } else {
+        setUserInfo(null);
+      }
     });
     return () => unsubscribe();
   }, []);
@@ -19,7 +40,7 @@ export const AuthProvider = ({ children }) => {
   const handleLogout = async () => {
     try {
       await signOut(auth);
-      console.log('User signed out successfully');
+      setUserInfo(null);
       navigate('/');
     } catch (error) {
       console.error('Error signing out:', error);
@@ -40,7 +61,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ currentUser, restrictRoute, handleLogout }}>
+    <AuthContext.Provider value={{ currentUser, userInfo, restrictRoute, handleLogout, fetchUserInfo }}>
       {children}
     </AuthContext.Provider>
   );

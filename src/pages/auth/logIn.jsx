@@ -1,11 +1,17 @@
 import { useState } from 'react';
-import { Link, Navigate } from 'react-router-dom';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { auth, provider } from '../../firebase';
 import { signInWithPopup, signInWithEmailAndPassword } from 'firebase/auth';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../context/authContext';
+import { useToast } from "../../hooks/use-toast";
+import { Label } from '../../components/ui/label';
+import { Input } from '../../components/ui/input';
+import { Button } from '../../components/ui/button';
 
 function Login() {
+  const navigate = useNavigate();
   const { currentUser } = useAuth();
+  const { toast } = useToast();
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -20,20 +26,28 @@ function Login() {
     try {
       const { email, password } = formData;
       await signInWithEmailAndPassword(auth, email, password);
-      console.log('User signed in with email and password');
-      Navigate('/home');
+      navigate('/home');
     } catch (error) {
       console.error('Error signing in with email and password:', error);
+      toast({
+        title: "Error",
+        description: "Failed to sign in. Please check your credentials.",
+        variant: "destructive"
+      });
     }
   };
 
   const handleGoogleSignIn = async () => {
     try {
       await signInWithPopup(auth, provider);
-      console.log('User signed in with Google');
-      Navigate('/home');
+      navigate('/home');
     } catch (error) {
       console.error('Error signing in with Google:', error);
+      toast({
+        title: "Error",
+        description: "Failed to sign in with Google.",
+        variant: "destructive"
+      });
     }
   };
 
@@ -45,13 +59,13 @@ function Login() {
   };
 
   return (
-    <div className="bg-cyan-300 min-h-screen flex items-center justify-center">
-      <div className="bg-white p-8 rounded-lg shadow-lg w-96">
-        <h2 className="text-3xl font-bold text-cyan-600 mb-6 text-center">Iniciar Sesión</h2>
+    <div className="bg-gray-200 min-h-screen flex items-center justify-center">
+      <div className="bg-white p-8 rounded-lg shadow-lg w-96 border border-gray-300">
+        <h2 className="text-3xl font-bold mb-6 text-center">Login</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label htmlFor="email" className="block text-gray-700 mb-2">Email</label>
-            <input
+            <Label htmlFor="email" className="block text-gray-700 mb-2">Email</Label>
+            <Input
               type="email"
               id="email"
               name="email"
@@ -62,8 +76,8 @@ function Login() {
             />
           </div>
           <div>
-            <label htmlFor="password" className="block text-gray-700 mb-2">Contraseña</label>
-            <input
+            <Label htmlFor="password" className="block text-gray-700 mb-2">Password</Label>
+            <Input
               type="password"
               id="password"
               name="password"
@@ -73,25 +87,26 @@ function Login() {
               required
             />
           </div>
-          <button
+          <Button
             type="button"
             onClick={handleSubmit}
-            className="w-full bg-red-600 text-white py-2 rounded hover:bg-red-700 transition-colors"
+            className="w-full"
           >
-            Iniciar Sesión
-          </button>
-          <button
+            Login
+          </Button>
+          <Button
             type="button"
             onClick={handleGoogleSignIn}
-            className="w-full bg-red-600 text-white py-2 rounded hover:bg-red-700 transition-colors"
+            className="w-full border border-black/50"
+            variant="secondary"
           >
-            Iniciar Sesión con Google
-          </button>
+            Login with Google
+          </Button>
         </form>
-        <p className="mt-4 text-center text-gray-600">
-          ¿No tienes una cuenta?{' '}
-          <Link to="/signup" className="text-cyan-600 hover:underline">
-            Regístrate
+        <p className="mt-4 text-center text-gray-600 text-sm">
+          Don&apos;t have an account?{' '}
+          <Link to="/signup" className="text-cyan-600 hover:underline text-sm">
+            Sign Up
           </Link>
         </p>
       </div>
