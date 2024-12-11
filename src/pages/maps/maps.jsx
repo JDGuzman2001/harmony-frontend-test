@@ -42,31 +42,49 @@ const calculateDistance = (point1, point2) => {
   return R * c;
 };
 
-const groupClosePoints = (points, maxDistance = 2) => { 
+const groupClosePoints = (points, maxDistance = 0.5) => {
   const groups = [];
   const visited = new Set();
 
   points.forEach((point, index) => {
     if (visited.has(index)) return;
 
-    const currentGroup = [point];
+    const currentGroup = {
+      points: [point.coordinates],
+      totalSales: point.sales,
+      pointsData: [point]
+    };
     visited.add(index);
 
     points.forEach((otherPoint, otherIndex) => {
       if (visited.has(otherIndex)) return;
       
-      if (calculateDistance(point, otherPoint) <= maxDistance) {
-        currentGroup.push(otherPoint);
+      if (calculateDistance(point.coordinates, otherPoint.coordinates) <= maxDistance) {
+        currentGroup.points.push(otherPoint.coordinates);
+        currentGroup.totalSales += otherPoint.sales;
+        currentGroup.pointsData.push(otherPoint);
         visited.add(otherIndex);
       }
     });
 
-    if (currentGroup.length >= 3) { 
+    if (currentGroup.points.length >= 2) {
       groups.push(currentGroup);
     }
   });
 
   return groups;
+};
+
+const getZoneColor = (salesValue, minSales, maxSales) => {
+  const ratio = (salesValue - minSales) / (maxSales - minSales);
+  
+  if (ratio < 0.33) {
+    return '#ff4444';
+  } else if (ratio < 0.66) {
+    return '#ffff44';
+  } else {
+    return '#44ff44';
+  }
 };
 
 const Maps = () => {
@@ -86,6 +104,7 @@ const Maps = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [visibleLocations, setVisibleLocations] = useState([]);
   const [selectedDistributor, setSelectedDistributor] = useState(null);
+  const [routeTotals, setRouteTotals] = useState({});
 
   useEffect(() => {
     const fetchDistributorData = async () => {
@@ -193,34 +212,39 @@ const Maps = () => {
           if (!routePoints[zoneData.route]) {
             routePoints[zoneData.route] = {
               points: [],
-              sales: {
-                total_liters: 0,
-                total_usd: 0
-              },
-              cities: new Set()
+              salesPoints: []
             };
           }
           
-          zoneData.points.forEach(point => {
-            const coords = point.replace('(', '').replace(')', '').split(',');
-            routePoints[zoneData.route].points.push([parseFloat(coords[0]), parseFloat(coords[1])]);
+          zoneData.point_data.forEach(point => {
+            const coords = point.gps_coordinates.replace('(', '').replace(')', '').split(',');
+            routePoints[zoneData.route].salesPoints.push({
+              coordinates: [parseFloat(coords[0]), parseFloat(coords[1])],
+              sales: point.sales_units,
+              salesInfo: {
+                units: point.sales_units,
+                liters: point.sales_liters,
+                usd: point.sales_usd
+              }
+            });
           });
-          
-          routePoints[zoneData.route].sales.total_liters += zoneData.sales_summary.total_liters;
-          routePoints[zoneData.route].sales.total_usd += zoneData.sales_summary.total_usd;
-          routePoints[zoneData.route].cities.add(zoneData.city);
         });
 
         const transformedZones = Object.entries(routePoints).map(([route, data]) => {
-          const pointGroups = groupClosePoints(data.points);
+          const salesGroups = groupClosePoints(data.salesPoints);
           
+          const allSales = salesGroups.map(group => group.totalSales);
+          const minSales = Math.min(...allSales);
+          const maxSales = Math.max(...allSales);
+
           return {
             name: `Ruta ${route}`,
-            cities: Array.from(data.cities).join(', '),
-            coverage: `Ventas: ${data.sales.total_liters.toLocaleString()} litros / $${data.sales.total_usd.toLocaleString()}`,
-            polygons: pointGroups,
-            points: data.points,
-            color: `hsl(${(parseInt(route) * 137.5) % 360}, 70%, 50%)`
+            salesClusters: salesGroups.map(group => ({
+              points: group.points,
+              totalSales: group.totalSales,
+              color: getZoneColor(group.totalSales, minSales, maxSales),
+              details: group.pointsData
+            }))
           };
         });
         
@@ -231,6 +255,24 @@ const Maps = () => {
           title: 'Fetched zones data',
           description: 'Zones data fetched correctly',
         })
+
+        const totals = {};
+        zonesDataJSON.zones.forEach(zoneData => {
+          if (!totals[zoneData.route]) {
+            totals[zoneData.route] = {
+              units: 0,
+              liters: 0,
+              usd: 0
+            };
+          }
+          
+          zoneData.point_data.forEach(point => {
+            totals[zoneData.route].units += point.sales_units;
+            totals[zoneData.route].liters += point.sales_liters;
+            totals[zoneData.route].usd += point.sales_usd;
+          });
+        });
+        setRouteTotals(totals);
       } catch (error) {
         console.error('Error fetching zones:', error);
         toast({
@@ -332,73 +374,29 @@ const Maps = () => {
                 </Select>
               </div>
             </div>
-            <MapContainer 
-            center={mapCenter}
-            zoom={12}
-            style={{ height: '80vh', width: '100%', maxWidth: '1400px', zIndex: 0 }}
-            className="z-0"
-          >
-            <ChangeMapView center={mapCenter} />
-            <LayersControl position="topright">
-              <LayersControl.BaseLayer checked name="OpenStreetMap">
-                <TileLayer
-                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                />
-              </LayersControl.BaseLayer>
-              
-              {selectedDistributorType && (
-                <LayersControl.Overlay checked name={selectedDistributorType}>
-                  {visibleLocations.map((location, index) => (
-                    <Marker 
-                      key={index} 
-                      position={[parseFloat(location.latitude), parseFloat(location.longitude)]}
-                      eventHandlers={{
-                        click: () => setSelectedDistributor(location),
-                      }}
-                    >
-                      <Tooltip>
-                        <div className="font-medium">
-                          <div>{location.brand} - {location.sub_brand}</div>
-                          <div>{location.product_name}</div>
-                          <div>Sales: ${location.sales_usd.toLocaleString()}</div>
-                          <div>{location.address}</div>
-                        </div>
-                      </Tooltip>
-                    </Marker>
-                  ))}
-                </LayersControl.Overlay>
-              )}
-
-              {!selectedDistributorType && zones
-                .filter(zone => selectedRoute && zone.name === `Ruta ${selectedRoute}`)
-                .map((zone, index) => (
-                  <LayersControl.Overlay key={index} checked name={zone.name}>
-                    {zone.polygons.map((polygon, polyIndex) => (
-                      <Polygon
-                        key={polyIndex}
-                        positions={polygon}
-                        pathOptions={{
-                          fillColor: zone.color,
-                          fillOpacity: 0.4,
-                          weight: 2,
-                          opacity: 1,
-                          color: 'white'
-                        }}
-                      >
-                        <Tooltip sticky>{zone.name}<br/>{zone.coverage}</Tooltip>
-                      </Polygon>
-                    ))}
-                  </LayersControl.Overlay>
-                ))}
-            </LayersControl>
-          </MapContainer>
-          {!loading && distributorLocations.length > 0 && (
+            {!loading && distributorLocations.length > 0 && (
               <div className="w-full max-w-[1400px] mb-4 p-4 flex flex-col gap-2">
                 <div className="flex justify-between items-center">
                   <span className="font-medium">
                     Showing {visibleLocations.length} of {distributorLocations.length} points
                   </span>
+                  <div className="flex items-center gap-4 justify-center">
+                    <button
+                      className="px-4 py-2 bg-primary text-primary-foreground rounded-md disabled:opacity-50"
+                      disabled={currentPage === 1}
+                      onClick={() => setCurrentPage(prev => prev - 1)}
+                    >
+                      Previous
+                    </button>
+                    <span>Page {currentPage} of {Math.ceil(distributorLocations.length / pointsPerPage)}</span>
+                    <button
+                      className="px-4 py-2 bg-primary text-primary-foreground rounded-md disabled:opacity-50"
+                      disabled={currentPage >= Math.ceil(distributorLocations.length / pointsPerPage)}
+                      onClick={() => setCurrentPage(prev => prev + 1)}
+                    >
+                      Next
+                    </button>
+                  </div>
                   <div className="flex items-center gap-4">
                     <span>Points per page:</span>
                     <Select
@@ -421,25 +419,93 @@ const Maps = () => {
                     </Select>
                   </div>
                 </div>
-                <div className="flex items-center gap-4 justify-center">
-                  <button
-                    className="px-4 py-2 bg-primary text-primary-foreground rounded-md disabled:opacity-50"
-                    disabled={currentPage === 1}
-                    onClick={() => setCurrentPage(prev => prev - 1)}
-                  >
-                    Previous
-                  </button>
-                  <span>Page {currentPage} of {Math.ceil(distributorLocations.length / pointsPerPage)}</span>
-                  <button
-                    className="px-4 py-2 bg-primary text-primary-foreground rounded-md disabled:opacity-50"
-                    disabled={currentPage >= Math.ceil(distributorLocations.length / pointsPerPage)}
-                    onClick={() => setCurrentPage(prev => prev + 1)}
-                  >
-                    Next
-                  </button>
+              </div>
+            )}
+            {selectedRoute && routeTotals[selectedRoute] && (
+              <div className="mb-4 bg-secondary rounded-lg shadow-sm w-full">
+                <div className="flex gap-4 justify-between items-center">
+                  <div>
+                    <span className="font-semibold">Total Units:</span>{' '}
+                    {routeTotals[selectedRoute].units.toLocaleString()}
+                  </div>
+                  <div>
+                    <span className="font-semibold">Total Liters:</span>{' '}
+                    {routeTotals[selectedRoute].liters.toLocaleString()}
+                  </div>
+                  <div>
+                    <span className="font-semibold">Total USD:</span>{' '}
+                    ${routeTotals[selectedRoute].usd.toLocaleString()}
+                  </div>
                 </div>
               </div>
             )}
+            <MapContainer 
+              center={mapCenter}
+              zoom={12}
+              style={{ height: '80vh', width: '100%', maxWidth: '1400px', zIndex: 0 }}
+              className="z-0"
+            >
+              <ChangeMapView center={mapCenter} />
+              <LayersControl position="topright">
+                <LayersControl.BaseLayer checked name="OpenStreetMap">
+                  <TileLayer
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                  />
+                </LayersControl.BaseLayer>
+                
+                {selectedDistributorType && (
+                  <LayersControl.Overlay checked name={selectedDistributorType}>
+                    {visibleLocations.map((location, index) => (
+                      <Marker 
+                        key={index} 
+                        position={[parseFloat(location.latitude), parseFloat(location.longitude)]}
+                        eventHandlers={{
+                          click: () => setSelectedDistributor(location),
+                        }}
+                      >
+                        <Tooltip>
+                          <div className="font-medium">
+                            <div>{location.brand} - {location.sub_brand}</div>
+                            <div>{location.product_name}</div>
+                            <div>Sales: ${location.sales_usd.toLocaleString()}</div>
+                            <div>{location.address}</div>
+                          </div>
+                        </Tooltip>
+                      </Marker>
+                    ))}
+                  </LayersControl.Overlay>
+                )}
+                {!selectedDistributorType && zones
+                  .filter(zone => selectedRoute && zone.name === `Ruta ${selectedRoute}`)
+                  .map((zone, index) => (
+                    <LayersControl.Overlay key={index} checked name={zone.name}>
+                      {zone.salesClusters.map((cluster, polyIndex) => (
+                        <Polygon
+                          key={polyIndex}
+                          positions={cluster.points}
+                          pathOptions={{
+                            fillColor: cluster.color,
+                            fillOpacity: 0.8,
+                            weight: 6,
+                            opacity: 1,
+                            color: cluster.color,
+                          }}
+                        >
+                          <Tooltip sticky>
+                            <div>
+                              <strong>{zone.name}</strong><br/>
+                              Total Sales: {cluster.totalSales.toLocaleString()} units<br/>
+                              Percentage of total sales: {((cluster.totalSales / routeTotals[selectedRoute].units) * 100).toFixed(2)}%<br/>
+                              Points in cluster: {cluster.points.length}
+                            </div>
+                          </Tooltip>
+                        </Polygon>
+                      ))}
+                    </LayersControl.Overlay>
+                  ))}
+              </LayersControl>
+            </MapContainer>
           </div>
         )}
       </div>
