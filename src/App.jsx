@@ -4,7 +4,7 @@ import Landing from './pages/landing/landing';
 import Login from './pages/auth/logIn';
 import Signup from './pages/auth/signUp';
 import Home from './pages/home/home';
-import Maps from './pages/maps/Maps';
+import Maps from './pages/maps/maps';
 import ActionPlans from './pages/action-plans/actionPlans';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { Toaster } from "@/components/ui/toaster"
