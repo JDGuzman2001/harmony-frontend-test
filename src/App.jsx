@@ -2,7 +2,7 @@ import { AuthProvider } from './context/authContext';
 import { auth } from './firebase';
 import Landing from './pages/landing/landing';
 import Login from './pages/auth/logIn';
-import Signup from './pages/auth/SignUp';
+import Signup from './pages/auth/signUp';
 import Home from './pages/home/home';
 import Maps from './pages/maps/Maps';
 import ActionPlans from './pages/action-plans/actionPlans';
