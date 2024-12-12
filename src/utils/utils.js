@@ -1,6 +1,9 @@
 import { toast } from "@/hooks/use-toast"
 
 const url = import.meta.env.VITE_API_URL;
+console.log("VITE_API_URL:", import.meta.env.VITE_API_URL);
+console.log("url:", url);
+
 
 export const fetchUserInfo = async (uid) => {
   try {
