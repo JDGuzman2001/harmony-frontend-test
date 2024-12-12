@@ -1,4 +1,5 @@
-import { AuthProvider, useAuth } from './context/authContext';
+import { AuthProvider } from './context/authContext';
+import { auth } from './firebase';
 import Landing from './pages/landing/landing';
 import Login from './pages/auth/logIn';
 import Signup from './pages/auth/SignUp';
@@ -7,28 +8,50 @@ import Maps from './pages/maps/Maps';
 import ActionPlans from './pages/action-plans/actionPlans';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { Toaster } from "@/components/ui/toaster"
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
+const queryClient = new QueryClient()
 
-function ProtectedRoute({ component: Component, allowedPaths }) {
-  const { restrictRoute } = useAuth();
-  return restrictRoute(<Component />, allowedPaths);
-}
+const ProtectedRoute = ({ children }) => {
+  const currentUser = auth.currentUser;
+  
+  if (!currentUser) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return children;
+};
 
 function App() {
-
   return (
-    <AuthProvider>
-      <Routes>
-        <Route path="/" element={<Landing />} />
-        <Route path="/signup" element={<Signup />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-        <Route path="/home" element={<Home />} />
-        <Route path="/maps" element={<ProtectedRoute component={Maps} allowedPaths={['/maps']} />} />
-        <Route path="/action-plans" element={<ProtectedRoute component={ActionPlans} allowedPaths={['/action-plans']} />} />
-      </Routes>
-      <Toaster />
-    </AuthProvider>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <Routes>
+          <Route path="/" element={<Landing />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route path="/login" element={<Login />} />
+          
+          <Route path="/home" element={
+            <ProtectedRoute>
+              <Home />
+            </ProtectedRoute>
+          } />
+          <Route path="/maps" element={
+            <ProtectedRoute>
+              <Maps />
+            </ProtectedRoute>
+          } />
+          <Route path="/action-plans" element={
+            <ProtectedRoute>
+              <ActionPlans />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="*" element={<Navigate to="/login" replace />} />
+        </Routes>
+        <Toaster />
+      </AuthProvider>
+    </QueryClientProvider>
   );
 }
 

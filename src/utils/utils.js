@@ -2,6 +2,20 @@ import { toast } from "@/hooks/use-toast"
 
 const url = import.meta.env.VITE_API_URL;
 
+export const fetchUserInfo = async (uid) => {
+  try {
+    const response = await fetch(`${url}/get-user-info?user_id=${uid}`);
+    if (!response.ok) {
+      throw new Error('Failed to fetch user info');
+    }
+    const data = await response.json();
+    return data.user_info;
+  } catch (error) {
+    console.error('Error fetching user info:', error);
+    return null;
+  }
+};
+
 export const fetchRoles = async (setRoles) => {
   try {
     const response = await fetch(`${url}/get-roles`);
@@ -43,13 +57,13 @@ export const updateUserData = async (userData) => {
 
 export const fetchDistributorData = async (selectedCountry, selectedDistributorType) => {
   try {
-    let url = `${url}/distributor-data?country=${selectedCountry}`;
+    let newUrl = `${url}/distributor-data?country=${selectedCountry}`;
     
     if (selectedDistributorType) {
-      url += `&distributor_type=${selectedDistributorType}`;
+      newUrl += `&distributor_type=${selectedDistributorType}`;
     }
     
-    const response = await fetch(url);
+    const response = await fetch(newUrl);
     const dataJSON = await response.json();
     return dataJSON.distributors;
   } catch (error) {
@@ -147,6 +161,102 @@ export const createTask = async (taskData) => {
     toast({
       title: "Error",
       description: "Failed to create task",
+      variant: "destructive",
+    });
+    throw error;
+  }
+};
+
+export const updateTask = async (taskId, newStatus) => {
+  try {
+    const response = await fetch(`${url}/update-task?task_id=${taskId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ status: newStatus }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to update task');
+    }
+
+    const data = await response.json();
+    return data.task;
+  } catch (error) {
+    console.error('Error updating task:', error);
+    toast({
+      title: "Error",
+      description: "Failed to update task",
+      variant: "destructive",
+    });
+    throw error;
+  }
+};
+
+export const deleteTask = async (taskId) => {
+  try {
+    const response = await fetch(`${url}/delete-task?task_id=${taskId}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to delete task');
+    }
+
+    const data = await response.json();
+    return data.task;
+  } catch (error) {
+    console.error('Error deleting task:', error);
+    throw error;
+  }
+};
+
+export const fetchOrganizationData = async (organizationId) => {
+  try {
+    if (!organizationId) {
+      throw new Error('Organization ID is required');
+    }
+
+    const response = await fetch(`${url}/get-organization-info?organization_id=${organizationId}`);
+    if (!response.ok) {
+      throw new Error('Failed to fetch organization data');
+    }
+
+    const data = await response.json();
+    return data.organization;
+  } catch (error) {
+    console.error('Error fetching organization data:', error);
+    toast({
+      title: "Error",
+      description: "Failed to load organization data",
+      variant: "destructive",
+    });
+    throw error;
+  }
+};
+
+export const fetchTasks = async (organizationId) => {
+  try {
+    if (!organizationId) {
+      throw new Error('Organization ID is required');
+    }
+
+    const response = await fetch(`${url}/get-tasks-by-organization?organization_id=${organizationId}`);
+    if (!response.ok) {
+      throw new Error('Failed to fetch tasks');
+    }
+
+    const data = await response.json();
+    return data.tasks;
+  } catch (error) {
+    console.error('Error fetching tasks:', error);
+    toast({
+      title: "Error",
+      description: "Failed to load tasks",
       variant: "destructive",
     });
     throw error;
