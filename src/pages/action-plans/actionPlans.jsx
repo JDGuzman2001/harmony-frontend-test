@@ -11,7 +11,7 @@ import { Loader2Icon } from 'lucide-react';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { CreateTaskDialog } from '../../components/CreateTaskDialog';
+import { CreateTaskDialog } from '../../components/createTaskDialog';
 
 const getDepartmentsByRole = (role) => {
   switch (role) {
