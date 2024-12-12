@@ -1,8 +1,7 @@
-// Helper function to calculate distance between two points using Haversine formula
 export const calculateDistance = (point1, point2) => {
   const [lat1, lon1] = point1;
   const [lat2, lon2] = point2;
-  const R = 6371; // Earth's radius in km
+  const R = 6371;
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLon = (lon2 - lon1) * Math.PI / 180;
   const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
@@ -12,7 +11,6 @@ export const calculateDistance = (point1, point2) => {
   return R * c;
 };
 
-// Group nearby points into clusters
 export const groupClosePoints = (points, maxDistance = 0.5) => {
   const groups = [];
   const visited = new Set();
@@ -46,7 +44,6 @@ export const groupClosePoints = (points, maxDistance = 0.5) => {
   return groups;
 };
 
-// Get color based on sales value
 export const getZoneColor = (salesValue, minSales, maxSales) => {
   const ratio = (salesValue - minSales) / (maxSales - minSales);
   
