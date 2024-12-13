@@ -180,8 +180,8 @@ export function CreateTaskDialog({ open, onOpenChange, userInfo, onSubmitTask })
                 )}
               />
               <div className="flex items-center justify-between gap-2">
-                <Button type="button" onClick={() => onOpenChange(false)} className="w-full">Cancel</Button>
-                <Button type="button" onClick={onSubmit} className="w-full">Create</Button>
+                <Button type="button" onClick={() => onOpenChange(false)} className="w-full bg-red-500 hover:bg-red-600 text-white">Cancel</Button>
+                <Button type="button" onClick={onSubmit} className="w-full bg-gray-800 hover:bg-gray-700 text-white">Create</Button>
               </div>
             </form>
           </Form>

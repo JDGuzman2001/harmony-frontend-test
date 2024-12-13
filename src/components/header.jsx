@@ -7,8 +7,8 @@ import {
     SheetTrigger,
     SheetTitle,
     SheetHeader,
-  } from "@/components/ui/sheet"
-import { Link, useLocation } from 'react-router-dom';
+} from "@/components/ui/sheet"
+import { Link } from 'react-router-dom';
 import { Home } from 'lucide-react';
 import { Map } from 'lucide-react';
 import { ClipboardList } from 'lucide-react';
@@ -19,19 +19,18 @@ import {
     DropdownMenuContent,
     DropdownMenuLabel,
     DropdownMenuTrigger,
-  } from "@/components/ui/dropdown-menu"
+} from "@/components/ui/dropdown-menu"
+import { ArrowLeftIcon } from 'lucide-react';
+import { Bot } from 'lucide-react';
 
 
-const Header = ({ title, onLogout }) => {
+const Header = ({ title, onLogout, onBack = false, onBackUrl }) => {
   const { userInfo } = useAuth();
-  const location = useLocation();
-
-  const isActionPlans = location.pathname === '/action-plans';
 
   return (
     <header className="w-full bg-gray-800 text-white px-1 py-3 shadow-md">
       <div className="mx-auto flex justify-between items-center">
-      <Sheet>
+        <Sheet>
           <SheetTrigger asChild>
             <Button className="bg-transparent hover:bg-white/10" ><Menu /></Button>
           </SheetTrigger>
@@ -40,19 +39,10 @@ const Header = ({ title, onLogout }) => {
               <SheetTitle>Menu</SheetTitle>
             </SheetHeader>
             <div className="grid gap-4 py-4">
-              {isActionPlans ? (
-                <>
-                  <div onClick={() => window.location.href = '/home'} className="flex items-center gap-2 cursor-pointer"><Home /> Home</div>
-                  <div onClick={() => window.location.href = '/maps'} className="flex items-center gap-2 cursor-pointer"><Map /> Maps</div>
-                  <div onClick={() => window.location.href = '/action-plans'} className="flex items-center gap-2 cursor-pointer"><ClipboardList /> Action Plans</div>
-                </>
-              ) : (
-                <>
-                  <Link to="/home" className="flex items-center gap-2"><Home /> Home</Link>
-                  <Link to="/maps" className="flex items-center gap-2"><Map /> Maps</Link>
-                  <Link to="/action-plans" className="flex items-center gap-2"><ClipboardList /> Action Plans</Link>
-                </>
-              )}
+              <Link to="/home" className="flex items-center gap-2"><Home /> Home</Link>
+              <Link to="/maps" className="flex items-center gap-2"><Map /> Maps</Link>
+              <Link to="/action-plans" className="flex items-center gap-2"><ClipboardList /> Action Plans</Link>
+              <Link to="/workflow-chat" className="flex items-center gap-2"><Bot /> Chat</Link>
             </div>
             <div className="flex items-center justify-between w-full">
               <div className="flex flex-col items-start justify-start gap-2 w-full">
@@ -86,8 +76,14 @@ const Header = ({ title, onLogout }) => {
             
           </SheetContent>
         </Sheet>
-
-        <h1 className="text-xl font-semibold">{title}</h1>
+        <div className="flex items-center gap-2">
+          {onBack && (
+            <Link to={onBackUrl}>
+              <ArrowLeftIcon className="mr-2 h-6 w-6" />
+            </Link>
+          )}
+          <h1 className="text-xl font-semibold">{title}</h1>
+        </div>
         
         <div className="flex items-center gap-2">
           <Avatar className="w-8 h-8 bg-white text-black">
