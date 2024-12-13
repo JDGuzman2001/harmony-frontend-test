@@ -10,7 +10,7 @@ import FlowChart from './pages/action-plans/flowChart';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import WorkflowChat from './pages/workflow-chat/workFlowChat';
+import WorkflowChat from './pages/workflow-chat/workflowChat';
 
 const queryClient = new QueryClient()
 
