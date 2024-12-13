@@ -1,9 +1,8 @@
 import { toast } from "@/hooks/use-toast"
 
 const url = import.meta.env.VITE_API_URL;
-console.log("VITE_API_URL:", import.meta.env.VITE_API_URL);
-console.log("url:", url);
 
+// USER
 
 export const fetchUserInfo = async (uid) => {
   try {
@@ -57,6 +56,32 @@ export const updateUserData = async (userData) => {
       throw error;
     }
   };
+
+// ORGANIZATION
+
+export const fetchOrganizationData = async (organizationId) => {
+  try {
+    if (!organizationId) {
+      throw new Error('Organization ID is required');
+    }
+
+    const response = await fetch(`${url}/get-organization-info?organization_id=${organizationId}`);
+    if (!response.ok) {
+      throw new Error('Failed to fetch organization data');
+    }
+
+    const data = await response.json();
+    return data.organization;
+  } catch (error) {
+    console.error('Error fetching organization data:', error);
+    toast({
+      title: "Error",
+      description: "Failed to load organization data",
+      variant: "destructive",
+    });
+    throw error;
+  }
+};
 
 export const fetchDistributorData = async (selectedCountry, selectedDistributorType) => {
   try {
@@ -143,6 +168,8 @@ export const fetchProductsByCountry = async (selectedCountry) => {
     }
   };
 
+// TASKS
+
 export const createTask = async (taskData) => {
   try {
     const response = await fetch(`${url}/create-task`, {
@@ -218,30 +245,6 @@ export const deleteTask = async (taskId) => {
   }
 };
 
-export const fetchOrganizationData = async (organizationId) => {
-  try {
-    if (!organizationId) {
-      throw new Error('Organization ID is required');
-    }
-
-    const response = await fetch(`${url}/get-organization-info?organization_id=${organizationId}`);
-    if (!response.ok) {
-      throw new Error('Failed to fetch organization data');
-    }
-
-    const data = await response.json();
-    return data.organization;
-  } catch (error) {
-    console.error('Error fetching organization data:', error);
-    toast({
-      title: "Error",
-      description: "Failed to load organization data",
-      variant: "destructive",
-    });
-    throw error;
-  }
-};
-
 export const fetchTasks = async (organizationId) => {
   try {
     if (!organizationId) {
@@ -262,6 +265,174 @@ export const fetchTasks = async (organizationId) => {
       description: "Failed to load tasks",
       variant: "destructive",
     });
+    throw error;
+  }
+};
+
+// WORKFLOWS
+
+export const fetchWorkflowsByOrganization = async (organizationId) => {
+  try {
+    const response = await fetch(`${url}/get-workflows-by-organization?organization_id=${organizationId}`);
+    const data = await response.json();
+    return data.workflows;
+  } catch (error) {
+    console.error('Error fetching workflows:', error);
+    throw error;
+  }
+};
+
+export const fetchNodesByWorkflow = async (workflowId) => {
+  try {
+    const response = await fetch(`${url}/get-nodes-by-workflow?workflow_id=${workflowId}`);
+    const data = await response.json();
+    return data.nodes;
+  } catch (error) {
+    console.error('Error fetching nodes:', error);
+    throw error;
+  }
+};
+
+export const fetchEdgesByWorkflow = async (workflowId) => {
+  try {
+    const response = await fetch(`${url}/get-edges-by-workflow?workflow_id=${workflowId}`);
+    const data = await response.json();
+    return data.edges;
+  } catch (error) {
+    console.error('Error fetching edges:', error);
+    throw error;
+  }
+};
+
+export const createWorkflow = async (workflowData) => {
+  try {
+    const response = await fetch(`${url}/create-workflow`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(workflowData),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to create workflow');
+    }
+
+    const data = await response.json();
+    return data.task;
+  } catch (error) {
+    console.error('Error creating workflow:', error);
+    toast({
+      title: "Error",
+      description: "Failed to create workflow",
+      variant: "destructive",
+    });
+    throw error;
+  }
+};
+
+export const deleteWorkflow = async (workflowId) => {
+  try {
+    const response = await fetch(`${url}/delete-workflow?workflow_id=${workflowId}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to delete workflow');
+    }
+
+    const data = await response.json();
+    return data.workflow;
+  } catch (error) {
+    console.error('Error deleting workflow:', error);
+    throw error;
+  }
+};
+
+export const createNode = async (nodeData, workflowId) => {
+  try {
+    const response = await fetch(`${url}/create-node?workflow_id=${workflowId}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(nodeData),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to create node');
+    }
+
+    const data = await response.json();
+    return data.node;
+  } catch (error) {
+    console.error('Error creating node:', error);
+    toast({
+      title: "Error",
+      description: "Failed to create node",
+      variant: "destructive",
+    });
+    throw error;
+  }
+};
+
+export const updateNodes = async (nodes, edges, workflowId) => {
+  try {
+    const response = await fetch(`${url}/update-nodes`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ nodes: nodes, edges: edges, workflow_id: workflowId }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to update nodes');
+    }
+
+    const data = await response.json();
+    return data.task;
+  } catch (error) {
+    console.error('Error updating nodes:', error);
+    toast({
+      title: "Error",
+      description: "Failed to update nodes",
+      variant: "destructive",
+    });
+    throw error;
+  }
+};
+
+// CHAT
+
+export const fetchUserMessages = async (userId) => {
+  try {
+    const response = await fetch(`${url}/get-user-messages?user_id=${userId}`);
+    const data = await response.json();
+    const parsedData = JSON.parse(data.user_messages.ia_answer);
+    return parsedData
+  } catch (error) {
+    console.error('Error fetching user messages:', error);
+    throw error;
+  }
+};
+
+export const getAnswerToChat = async (message, userId) => {
+  try {
+    const response = await fetch(`${url}/get-answer-to-chat`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ message: message, user_id: userId }),
+    });
+    const data = await response.json();
+    return data.message;
+  } catch (error) {
+    console.error('Error fetching answer to chat:', error);
     throw error;
   }
 };

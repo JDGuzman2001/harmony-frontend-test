@@ -11,6 +11,7 @@ import {
 import { Card, CardContent } from "@/components/ui/card"
 import { Map } from 'lucide-react';
 import { ClipboardList } from 'lucide-react';
+import { Bot } from 'lucide-react';
 
 function Home() {
   const { handleLogout } = useAuth();
@@ -32,18 +33,36 @@ function Home() {
                   {index === 0 ? (
                     <Link to="/maps">
                       <Card>
-                        <CardContent className="flex aspect-square items-center justify-center p-6 flex-col gap-10 bg-cyan-200 rounded-lg">
-                          <span className="text-4xl font-semibold">Maps</span>
-                          <Map className="w-10 h-10" />
+                        <CardContent className="flex aspect-square items-center justify-center p-6 flex-col gap-10 rounded-lg relative overflow-hidden">
+                          <div className="absolute inset-0 bg-[url('https://images.pexels.com/photos/8569749/pexels-photo-8569749.jpeg')] bg-cover bg-center bg-no-repeat">
+                            <div className="absolute inset-0 bg-black/40"></div>
+                          </div>
+                          <span className="text-6xl font-semibold text-white relative z-10">Maps</span>
+                          <Map className="w-20 h-20 text-white relative z-10" />
                         </CardContent>
                       </Card>
                     </Link>
                   ) : index === 1 ? (
                     <Link to="/action-plans">
                       <Card>
-                        <CardContent className="flex aspect-square items-center justify-center p-6 flex-col gap-10 bg-green-200 rounded-lg">
-                          <span className="text-4xl font-semibold">Action Plans</span>
-                          <ClipboardList className="w-10 h-10" />
+                        <CardContent className="flex aspect-square items-center justify-center p-6 flex-col gap-10 rounded-lg relative overflow-hidden">
+                          <div className="absolute inset-0 bg-[url('https://images.pexels.com/photos/29737184/pexels-photo-29737184/free-photo-of-cuaderno-de-viaje-creativo-y-camara-en-mano.jpeg')] bg-cover bg-center bg-no-repeat">
+                            <div className="absolute inset-0 bg-black/40"></div>
+                          </div>
+                          <span className="text-6xl font-semibold text-white relative z-10">Action Plans</span>
+                          <ClipboardList className="w-20 h-20 text-white relative z-10" />
+                        </CardContent>
+                      </Card>
+                    </Link>
+                  ): index === 2 ? (
+                    <Link to="/workflow-chat">
+                      <Card>
+                        <CardContent className="flex aspect-square items-center justify-center p-6 flex-col gap-10 rounded-lg relative overflow-hidden">
+                          <div className="absolute inset-0 bg-[url('https://images.pexels.com/photos/2599244/pexels-photo-2599244.jpeg')] bg-cover bg-center bg-no-repeat">
+                            <div className="absolute inset-0 bg-black/40"></div>
+                          </div>
+                          <span className="text-6xl font-semibold text-white relative z-10 text-center">Workflow Chat</span>
+                          <Bot className="w-20 h-20 text-white relative z-10" />
                         </CardContent>
                       </Card>
                     </Link>
